@@ -19,7 +19,7 @@ El **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clí
 
 VetLink se construyó como respuesta a esos tres puntos en un único flujo: importar → ficha canónica → derivación → briefing → cierre.
 
-> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública hay que limpiar el historial de documentos internos y añadir la licencia del proyecto y los avisos de terceros; no debe hacerse pública sin completar esa limpieza.
+> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública solo falta limpiar el historial de documentos internos; la licencia y los avisos de terceros ya están añadidos.
 
 ## El problema
 
@@ -230,6 +230,9 @@ VetLink/
 │   └── canonical/         # registros canónicos usados por el seed
 ├── contracts/             # contrato OpenAPI v1
 ├── docs/presentacion-final/ # presentación de la fase final
+├── LICENSE                # licencia MIT del proyecto
+├── LICENSES/              # textos de licencias de terceros
+├── THIRD_PARTY_NOTICES.md # inventario completo de terceros
 ├── screenshots/           # capturas de la demo y diagramas
 ├── scripts/               # atajos de desarrollo y E2E
 ├── start.py               # arranque multiplataforma en un comando
@@ -248,11 +251,20 @@ Resumen de 5 minutos para la fase final: idea, problema, demo, valor y nivel té
 - [VetLink · presentación final (PPTX con notas)](docs/presentacion-final/VetLink-final-5min.pptx)
 - [VetLink · presentación final (PDF)](docs/presentacion-final/VetLink-final-5min.pdf)
 
+## Licencia
+
+El código y la documentación original se distribuyen bajo **MIT**; consulta [`LICENSE`](LICENSE).
+
+Las dependencias, la fuente Instrument Sans y los assets de terceros tienen sus propias licencias. El inventario completo y los textos están en [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) y [`LICENSES/`](LICENSES/). Instrument Sans se distribuye bajo SIL OFL 1.1.
+
+MIT no concede derechos sobre las marcas **VetLink** ni **Boehringer Ingelheim**; consulta la nota de marcas en los avisos de terceros.
+
 ## Equipo
 
 Equipo **Joniha** · Jose Miguel (producto, frontend y demo) y Rayan (backend y datos).
 
 Reto 3 de la VIII Hackathon Boehringer Ingelheim España.
+
 
 
 
