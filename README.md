@@ -2,8 +2,6 @@
 
 > **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clínica”**
 > VIII Hackathon Boehringer Ingelheim España · 13–15 de noviembre de 2026 · Equipo **Joniha**
->
-> **Demo online:** [vetlink-production-535cb6a5.up.railway.app](https://vetlink-production-535cb6a5.up.railway.app)
 
 VetLink convierte historias clínicas veterinarias dispersas en **una ficha única y compartible**, conecta a la clínica generalista con el **especialista** que necesita y entrega al especialista un **briefing pre-visita** antes de ver al paciente.
 
@@ -21,7 +19,7 @@ El **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clí
 
 VetLink se construyó como respuesta a esos tres puntos en un único flujo: importar → ficha canónica → derivación → briefing → cierre.
 
-> **Copia privada temporal.** Este repositorio conserva el trabajo del hackathon mientras se aclaran los permisos de publicación con la organización y el equipo. No está licenciado para uso público ni redistribución. Incluye una fuente propietaria (AlanSans) y material de la hackathon; **no debe hacerse público sin autorización expresa**.
+> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública hay que sustituir la fuente propietaria AlanSans y limpiar el historial de documentos internos; no debe hacerse pública sin completar esa limpieza.
 
 ## El problema
 
