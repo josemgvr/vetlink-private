@@ -131,7 +131,7 @@ El botón **Cargar demo** de la cabecera reinicia los datos de ejemplo.
 
 La ficha, las alertas y la navegación están preparadas para móvil:
 
-![Ficha en móvil](screenshots/09-movil-ficha.png)
+<img src="screenshots/09-movil-ficha.png" alt="Ficha en móvil" width="320" />
 
 ## Funcionalidades
 
