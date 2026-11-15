@@ -19,7 +19,7 @@ El **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clí
 
 VetLink se construyó como respuesta a esos tres puntos en un único flujo: importar → ficha canónica → derivación → briefing → cierre.
 
-> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública hay que sustituir la fuente propietaria AlanSans y limpiar el historial de documentos internos; no debe hacerse pública sin completar esa limpieza.
+> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública hay que limpiar el historial de documentos internos y añadir la licencia del proyecto y los avisos de terceros; no debe hacerse pública sin completar esa limpieza.
 
 ## El problema
 

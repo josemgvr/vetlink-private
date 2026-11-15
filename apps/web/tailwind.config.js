@@ -37,7 +37,7 @@ export default {
       },
       fontFamily: {
         sans: [
-          'AlanSans',
+          'Instrument Sans',
           'Inter',
           'system-ui',
           '-apple-system',
