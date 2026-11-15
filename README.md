@@ -9,6 +9,20 @@ VetLink convierte historias clínicas veterinarias dispersas en **una ficha úni
 
 ![Ficha clínica de Kira](screenshots/04-ficha-kira.png)
 
+## Contexto de la hackathon
+
+Este proyecto se desarrolló durante la **VIII Hackathon Boehringer Ingelheim España**, celebrada de forma virtual del **13 al 15 de noviembre de 2026** por el equipo **Joniha**.
+
+El **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clínica”** planteaba tres necesidades conectadas:
+
+1. **Normalizar** historias clínicas veterinarias que llegan en formatos distintos (Word, Excel, JSON y CSV).
+2. **Conectar** a la clínica generalista con especialistas, con precio, disponibilidad, solicitud y agenda.
+3. **Preparar la visita**: que el especialista reciba el contexto y el briefing antes de ver al paciente, con consentimiento y acceso auditado.
+
+VetLink se construyó como respuesta a esos tres puntos en un único flujo: importar → ficha canónica → derivación → briefing → cierre.
+
+> **Copia privada temporal.** Este repositorio conserva el trabajo del hackathon mientras se aclaran los permisos de publicación con la organización y el equipo. No está licenciado para uso público ni redistribución. Incluye una fuente propietaria (AlanSans) y material de la hackathon; **no debe hacerse público sin autorización expresa**.
+
 ## El problema
 
 Laura es veterinaria generalista: no puede tener especialistas en plantilla y no sabe quién trabaja en su zona, qué ofrece, cuánto cuesta ni cuándo puede venir. Marc es especialista ambulante: cada clínica usa un software distinto y la historia del paciente le llega como Word, Excel, JSON o CSV, incompleta y desordenada. Los primeros minutos de cada visita los dedica a reconstruir el caso. **La información existe, pero no llega a tiempo.**
