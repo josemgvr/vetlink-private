@@ -19,7 +19,7 @@ El **Reto 3 — “Menos papeleo, más cuidado: los datos al servicio de la clí
 
 VetLink se construyó como respuesta a esos tres puntos en un único flujo: importar → ficha canónica → derivación → briefing → cierre.
 
-> **Copia privada de trabajo.** La organización y el equipo han confirmado su permiso para conservar y preparar este trabajo. Antes de una publicación pública solo falta limpiar el historial de documentos internos; la licencia y los avisos de terceros ya están añadidos.
+> **Proyecto de hackathon.** Prototipo creado para la VIII Hackathon Boehringer Ingelheim España. No es un producto sanitario ni una aplicación lista para producción. Usa datos ficticios y autenticación de demostración; no debe usarse con datos reales hasta completar las garantías de seguridad y cumplimiento. Código bajo licencia MIT; avisos de terceros en [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## El problema
 
@@ -243,6 +243,16 @@ VetLink/
 ## Privacidad
 
 Todos los datos son **ficticios y anonimizados**. El prototipo aplica mínimo privilegio: roles, niveles de compartición (`CLINICAL` / `FULL`), resumen no identificativo antes de aceptar, auditoría de accesos y aviso visible de entorno de demostración. En producción: clínica como responsable del tratamiento, VetLink como encargado (DPA), alojamiento en la UE y consentimiento informado del tutor (RGPD / LOPDGDD).
+
+## Alcance y descargo
+
+Este repositorio documenta un **prototipo de hackathon**, no un producto terminado:
+
+- no es un dispositivo médico ni sustituye el criterio veterinario;
+- el login es de demostración, sin SSO ni MFA de producción;
+- los datos incluidos son ficticios y no deben sustituirse por datos reales;
+- OCR/PDF, pagos reales, integraciones PMS y despliegue multi-cliente quedan fuera del MVP;
+- antes de un uso real hacen falta seguridad, cumplimiento, consentimiento, retención y auditoría de producción.
 
 ## Presentación final
 
