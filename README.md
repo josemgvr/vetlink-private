@@ -230,6 +230,7 @@ VetLink/
 │   └── canonical/         # registros canónicos usados por el seed
 ├── contracts/             # contrato OpenAPI v1
 ├── docs/presentacion-final/ # presentación de la fase final
+├── CONTRIBUTORS.md        # roles y atribución del equipo
 ├── LICENSE                # licencia MIT del proyecto
 ├── LICENSES/              # textos de licencias de terceros
 ├── THIRD_PARTY_NOTICES.md # inventario completo de terceros
@@ -272,6 +273,8 @@ MIT no concede derechos sobre las marcas **VetLink** ni **Boehringer Ingelheim**
 ## Equipo
 
 Equipo **Joniha** · Jose Miguel (producto, frontend y demo) y Rayan (backend y datos).
+
+Detalle de roles y contribuciones: [`CONTRIBUTORS.md`](CONTRIBUTORS.md).
 
 Reto 3 de la VIII Hackathon Boehringer Ingelheim España.
 
