@@ -1,133 +1,207 @@
-# `services/api` — API VetLink (H+0)
+# API VetLink
 
-**Stack:** Python 3.12 · FastAPI · SQLModel · SQLite (`data/vetlink.db`) · auth demo por cookie firmada (`itsdangerous`). Sin JWT, sin Supabase, sin Docker. En la demo, FastAPI sirve también la SPA compilada si existe `apps/web/dist`.
+API de VetLink para normalizar historias clínicas veterinarias y conectar clínica generalista y especialista: importación multiformato, ficha canónica, alertas, derivaciones, disponibilidad, agenda, briefing pre-visita y cierre.
 
-Contrato congelado: `contracts/openapi-v1.json` (autogenerado desde `/openapi.json`).
+> **Prototipo de hackathon.** No es un producto sanitario ni una implementación lista para producción. Usa datos ficticios y autenticación de demostración.
 
----
+- **Stack:** Python 3.11+ · FastAPI · SQLModel · SQLite · cookies firmadas con `itsdangerous`.
+- **Contrato:** [`contracts/openapi-v1.json`](../../contracts/openapi-v1.json) — **27 rutas / 30 operaciones**.
+- **Swagger:** `http://127.0.0.1:8000/docs` · **OpenAPI:** `http://127.0.0.1:8000/openapi.json`.
+- **Sin LLM:** el briefing y las alertas son deterministas.
+- **Licencia:** MIT en el [`LICENSE`](../../LICENSE) raíz; terceros en [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).
 
-## 1. Arranque real (verificado)
+## Arranque rápido
 
-Desde la raíz del repo `D:\hackaton\Programa\Joniha`:
+Desde la raíz del repositorio:
+
+```bash
+python start.py
+```
+
+El script crea el entorno, instala dependencias, compila la SPA si hace falta y arranca el servidor. La API queda en:
+
+```text
+http://127.0.0.1:8000/api/health
+http://127.0.0.1:8000/docs
+```
+
+### Solo la API
+
+**Windows**
 
 ```powershell
-# 1) entorno (solo la primera vez)
-C:\Users\Usuario\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe -m venv services/api/.venv
-services/api/.venv/Scripts/python.exe -m pip install -r services/api/requirements.txt
-
-# 2) arranque
 cd services/api
-..\..\services\api\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
-- API: <http://127.0.0.1:8000/api/health>
-- Swagger: <http://127.0.0.1:8000/docs> · OpenAPI: <http://127.0.0.1:8000/openapi.json>
-- La BD y los uploads se crean solos: `data/vetlink.db`, `data/uploads/`.
-- Al arrancar, si la BD está vacía, se siembra automáticamente (idempotente). `POST /api/demo/reset` la recrea.
-- CORS abierto para `http://localhost:5173` (Vite dev).
-- `VETLINK_SECRET_KEY` (opcional) firma la cookie; por defecto usa una clave de demo.
+**macOS / Linux**
 
-## 2. Auth demo
-
-```powershell
-curl.exe -c cookies.txt -X POST http://127.0.0.1:8000/api/auth/demo `
-  -H "Content-Type: application/json" -d '{"user":"laura"}'
-# -> set-cookie: session=...; HttpOnly; SameSite=lax
-curl.exe -b cookies.txt http://127.0.0.1:8000/api/me
+```bash
+cd services/api
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
+
+La base de datos y los uploads se crean solos en `data/vetlink.db` y `data/uploads/`. Si la base está vacía, se siembra al arrancar. `POST /api/demo/reset` borra y vuelve a sembrar los datos de demostración.
+
+### Variables de entorno
+
+| Variable | Uso | Valor por defecto |
+|---|---|---|
+| `VETLINK_SECRET_KEY` | Firma de la cookie de sesión | Clave de demo |
+
+En producción hay que definir una clave propia y no reutilizar la de demo. La ruta de SQLite y los orígenes CORS se configuran en `app/config.py`.
+
+## Autenticación demo
+
+`POST /api/auth/demo` con `{ "user": "laura" }` o `{ "user": "marc" }` crea una cookie `session` HttpOnly de 12 horas.
 
 | Usuario | Rol | Uso |
 |---|---|---|
-| `laura` | `CLINIC` — Clínica Vall del Sol | Sube fichas, ve pacientes, crea derivaciones |
-| `marc` | `SPECIALIST` — Cardiología | Ve derivaciones asignadas, acepta con slot, desbloquea el briefing |
+| `laura` | `CLINIC` | Pacientes, importación, revisión, derivaciones y agenda de la clínica |
+| `marc` | `SPECIALIST` | Solicitudes asignadas, aceptación, briefing, disponibilidad y cierre |
 
-`POST /api/auth/logout` borra la cookie. Sesión válida 12 h.
+No hay registro, contraseña, JWT, SSO ni MFA. Es una autenticación deliberadamente limitada para la demo.
 
-## 3. Endpoints (prefijo `/api`)
+## Endpoints
+
+Prefijo: `/api`. Las rutas marcadas como clínica o especialista aplican RBAC y pueden devolver `403`.
+
+### Sistema y sesión
 
 | Método | Ruta | Notas |
 |---|---|---|
-| GET | `/health` | `{status, db, seeded, counts}` |
-| POST | `/auth/demo` | body `{user}` → cookie `session` |
-| GET | `/me` | usuario de la sesión (401 sin cookie) |
-| POST | `/auth/logout` | borra cookie |
-| GET | `/patients` | 3 pacientes sembrados + `alerts_count` |
-| GET | `/patients/{id}/record` | canónico completo + alertas + provenance · audita `VIEW_RECORD` |
-| POST | `/imports` | multipart `files` → cache sha256: 3 READY, resto `NEEDS_REVIEW` |
-| GET | `/imports/{job_id}` | estado de la importación |
-| GET | `/specialists?specialty=&zone=` | directorio + `next_slot` |
-| GET | `/specialists/{id}` | ficha + `available_slots` |
-| POST | `/requests` | `{patient_id, specialist_id, motivo, urgencia, share_level, preferred}` |
-| GET | `/requests` | CLINIC: las suyas · SPECIALIST: asignadas |
-| GET | `/requests/{id}` | detalle + `patient_summary` no identificativo |
-| GET | `/requests/{id}/summary` | resumen NO identificativo (antes y después de aceptar) |
-| POST | `/requests/{id}/accept` | `{slot_iso}` → `SCHEDULED` + `Appointment` + auditoría |
-| POST | `/requests/{id}/decline` · `/cancel` | estados `DECLINED` / `CANCELLED` |
-| GET | `/requests/{id}/briefing` | 403 si no está aceptada; 200 con `{briefing, record, audit}` |
-| GET | `/appointments?from=&to=` | agenda de las derivaciones visibles |
-| GET | `/requests/{id}/audit` | trazabilidad de la derivación |
-| POST | `/demo/reset` | borra y reseeda |
+| GET | `/health` | Estado, base, seed y contadores |
+| GET | `/me` | Usuario de la sesión |
+| POST | `/auth/demo` | Login de demostración |
+| GET | `/auth/me` | Alias del usuario actual |
+| POST | `/auth/logout` | Elimina la cookie |
+| POST | `/demo/reset` | Borra y resiembra la demo |
+| GET | `/demo/state` | Estado del dataset de demostración |
 
-## 4. Demo de 60 segundos (verificada)
+### Pacientes y ficha clínica
 
-```powershell
-$B = "http://127.0.0.1:8000/api"
-curl.exe -s $B/health
-curl.exe -s -c c.txt -X POST $B/auth/demo -H "Content-Type: application/json" -d '{"user":"laura"}'
-curl.exe -s -b c.txt -F "files=@data/samples/historial.json" $B/imports   # READY -> pat_kira
-curl.exe -s -b c.txt -F "files=@data/samples/export_clinica_norte.csv" $B/imports  # NEEDS_REVIEW
-curl.exe -s -b c.txt $B/patients/pat_kira/record
-curl.exe -s -b c.txt -X POST $B/requests -H "Content-Type: application/json" `
-  -d '{"patient_id":"pat_kira","specialist_id":"spc_marc","motivo":"Soplo cardíaco","urgencia":"ALTA","share_level":"CLINICAL","preferred":"Mañanas"}'
-curl.exe -s -b c.txt $B/requests/<id>/summary          # 200 sin datos del tutor
-curl.exe -s -b c.txt $B/requests/<id>/briefing         # 403: se desbloquea al aceptar
-curl.exe -s -c m.txt -X POST $B/auth/demo -H "Content-Type: application/json" -d '{"user":"marc"}'
-curl.exe -s -b m.txt -X POST $B/requests/<id>/accept -H "Content-Type: application/json" -d '{"slot_iso":"2026-11-16T09:30:00"}'
-curl.exe -s -b m.txt $B/requests/<id>/briefing         # 200: historia completa + briefing
-curl.exe -s -b m.txt $B/appointments
-```
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/patients` | Pacientes visibles para la clínica, con alertas |
+| GET | `/patients/{patient_id}/record` | Registro canónico, procedencia y alertas; audita la consulta |
+| PATCH | `/patients/{patient_id}/record/review` | Confirma la revisión humana de campos dudosos |
 
-## 5. Datos demo y cache de importación
+### Importación y mapeo
 
-- Los 3 canónicos de `data/canonical/` se siembran como `pat_bruno`, `pat_luna`, `pat_kira` (registro completo, alertas proyectadas, `identity_confidence`).
-- La cache de importación se construye en caliente con el **sha256** de `data/samples/` y los mapea a su `record_id`: subir esos 3 ficheros devuelve `READY` sin parsear (demo instantánea).
-- Cualquier otro fichero (p. ej. `export_clinica_norte.csv`) devuelve `NEEDS_REVIEW` con `"mapeo asistido pendiente"`. El pipeline nunca falla en bloque.
-- Especialistas: `spc_marc` (Cardiología, Barcelona, 120 €), `spc_elena` (Dermatología, Barcelona, 95 €), `spc_javier` (Traumatología, Sant Cugat, 110 €). Slots ISO reales de los próximos días laborables.
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/imports` | Multipart `files`: `.docx`, `.xlsx`, `.json` o `.csv` |
+| GET | `/imports` | Historial de importaciones |
+| GET | `/imports/{job_id}` | Estado de una importación |
+| GET | `/imports/{job_id}/mapping` | Propuesta de mapeo de columnas |
+| POST | `/imports/{job_id}/mapping` | Confirma o corrige el mapeo |
 
-## 6. Briefing determinista (sin LLM)
+Los ficheros exactos de ejemplo se reconocen por SHA-256 y se resuelven al instante. Las variantes y los CSV genéricos pasan por extracción y quedan en `NEEDS_REVIEW` si necesitan revisión.
 
-`app/briefing.py` calcula desde el canónico: `headline`, `patient_label`, `alert_counts` (CRITICAL/HIGH/MEDIUM/LOW/INFO), `priority_actions` (3), `data_freshness_days` (desde `source.source_as_of`), `data_gaps` y `alerts_rendered` (máx. 7).
+El mapeo **no permite ignorar ni reasignar** las columnas de identidad (`patient.name`, `patient.microchip`): la API devuelve `422`. La ficha resultante conserva procedencia y campos pendientes.
 
-`build_public_summary()` reutiliza la misma función y **filtra**: especie, raza, edad, sexo/esterilización, peso/BCS, motivo, 3 alertas, urgencia y servicio/precio. Nunca tutor, microchip, documentos ni facturas.
+### Especialistas y disponibilidad
 
-## 7. Tests
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/specialists` | Búsqueda por especialidad y zona; incluye siguiente hueco |
+| GET | `/specialists/{specialist_id}` | Ficha y franjas disponibles |
+| PATCH | `/specialists/{specialist_id}/availability` | Solo el propio especialista puede editar su agenda |
 
-```powershell
-cd services/api
-..\..\services\api\.venv\Scripts\python.exe -m pytest
-```
+### Derivaciones y ciclo de visita
 
-## 8. Estructura
+| Método | Ruta | Notas |
+|---|---|---|
+| POST | `/requests` | Crea una derivación desde la clínica |
+| GET | `/requests` | Clínica: propias; especialista: asignadas |
+| GET | `/requests/{request_id}` | Detalle de la solicitud |
+| GET | `/requests/{request_id}/summary` | Resumen no identificativo antes y después de aceptar |
+| POST | `/requests/{request_id}/accept` | Acepta, opcionalmente con `slot_iso`; crea la cita |
+| POST | `/requests/{request_id}/decline` | Rechaza la derivación |
+| POST | `/requests/{request_id}/cancel` | Cancela desde la clínica |
+| POST | `/requests/{request_id}/close` | Cierra la visita y devuelve la nota a la ficha |
+| GET | `/requests/{request_id}/briefing` | Solo tras aceptar; `403` si está bloqueado |
+| GET | `/requests/{request_id}/audit` | Eventos de auditoría de la solicitud |
 
-```
+Reglas relevantes:
+
+- una franja pasada devuelve `422`;
+- una doble reserva devuelve `409`;
+- el briefing completo no se sirve antes de aceptar;
+- el cierre y la nota clínica solo los puede hacer el especialista asignado;
+- el resumen previo filtra tutor, microchip, documentos y facturas.
+
+### Agenda y auditoría global
+
+| Método | Ruta | Notas |
+|---|---|---|
+| GET | `/appointments?from=&to=` | Citas visibles en un rango |
+| GET | `/audit` | Últimos eventos de auditoría visibles según rol |
+
+## Briefing y resumen
+
+`app/briefing.py` construye el briefing desde el registro canónico:
+
+- titular y etiqueta del paciente;
+- conteo de alertas por severidad;
+- tres acciones prioritarias;
+- antigüedad del dato;
+- huecos de información;
+- alertas renderizadas.
+
+No usa un modelo generativo. El resumen previo a la aceptación aplica un filtro de identidad y no incluye datos del tutor, microchip, documentos ni facturas.
+
+## Estructura
+
+```text
 services/api/
 ├── app/
-│   ├── main.py        # app, CORS, /api, SPA opcional
-│   ├── config.py      # rutas y ajustes
-│   ├── db.py          # engine SQLite, sesión, auditoría
-│   ├── models.py      # 10 tablas SQLModel
-│   ├── schemas.py     # entrada Pydantic + serializadores
-│   ├── auth.py        # cookie firmada + RBAC por rol
-│   ├── briefing.py    # briefing y resumen no identificativo
-│   ├── seed.py        # seed idempotente + cache sha256
-│   └── routers/       # auth, patients, imports, specialists,
-│                      # requests, appointments, audit, demo
+│   ├── main.py              # app, CORS, /api, SPA opcional
+│   ├── config.py            # rutas y configuración
+│   ├── context.py           # contexto de petición y usuario
+│   ├── db.py                # engine SQLite, sesión y auditoría
+│   ├── models.py            # tablas SQLModel
+│   ├── schemas.py           # entrada/salida Pydantic
+│   ├── auth.py              # cookie firmada y RBAC
+│   ├── ingestion.py         # persistencia canónica y matching
+│   ├── briefing.py          # briefing y resumen no identificativo
+│   ├── seed.py              # seed idempotente y caché SHA-256
+│   ├── errors.py            # errores comunes
+│   ├── canonical/           # alertas y matching
+│   ├── extractors/          # docx, xlsx, json, csv, mapeo y preview
+│   └── routers/             # auth, patients, imports, specialists,
+│                            # requests, appointments, audit y demo
 ├── tests/
-└── pyproject.toml / requirements.txt
+├── pyproject.toml
+└── requirements.txt
 ```
 
-## 9. Pendiente (fuera del H+0)
+## Tests
 
-- Extracción real de docx/xlsx/json/csv (hoy: cache sha256 + `NEEDS_REVIEW`).
-- Persistir la subida a `Record`/`Patient` nuevos cuando el mapeo esté revisado.
-- `data/vetlink.db` y `data/uploads/` son artefactos locales: conviene añadirlos al `.gitignore` de la raíz.
+```bash
+cd services/api
+python -m pytest
+```
+
+Estado verificado: **70 tests pasan**. El contrato tiene **27 rutas / 30 operaciones**.
+
+## Alcance y limitaciones
+
+- SQLite y cookie de demo; no hay SSO, MFA, rate limiting ni hardening de producción.
+- Sin OCR/PDF, pagos, email real, integraciones PMS ni multi-clínica.
+- La caché de importación es una optimización de demo, no un pipeline de producción.
+- El briefing es determinista y **no es un dispositivo médico**.
+- Antes de usar datos reales hacen falta RGPD/LOPDGDD, consentimiento, retención, DPA y auditoría de producción.
+- El historial público del repositorio contiene documentación interna antigua; no debe tomarse como un snapshot limpio.
+
+## Enlaces
+
+- [README del proyecto](../../README.md)
+- [Contribuidores](../../CONTRIBUTORS.md)
+- [Contrato OpenAPI](../../contracts/openapi-v1.json)
+- [Licencia MIT](../../LICENSE)
+- [Avisos de terceros](../../THIRD_PARTY_NOTICES.md)
