@@ -2,132 +2,187 @@
 
 SPA de la demo de **VetLink** (equipo **Joniha**, Reto 3 · VIII Hackathon Boehringer Ingelheim España).
 
-**Stack:** React 18 + Vite 5 + TypeScript + **Tailwind CSS 3.4** + **DaisyUI 4.12** (tema `vetlink`) + React Router 6 + TanStack Query 5 + `lucide-react` + `react-dropzone`.
+> **Prototipo de hackathon.** No es un producto sanitario ni una implementación lista para producción. Los datos de la demo son ficticios.
 
-## Arranque real
+## Stack
 
-Requisitos: **Node 20+ y npm** (en este equipo `pnpm` no está en el PATH; los scripts funcionan igual con `npm`). La API FastAPI se sirve en `http://localhost:8000` bajo `/api`.
+- React 18 + TypeScript 5.6
+- Vite 5
+- Tailwind CSS 3.4 + DaisyUI 4.12 (tema `vetlink`)
+- React Router 6
+- TanStack Query 5
+- `lucide-react` + `react-dropzone`
+- **Instrument Sans** local, bajo SIL OFL 1.1
 
-```powershell
-cd apps/web
-npm install       # ya instalado en este equipo; si usas pnpm, pnpm install
-npm run dev       # Vite en http://127.0.0.1:5173 con proxy /api → :8000
-# o, desde la raíz del repo:  powershell -File scripts\dev.ps1
+## Arranque
+
+### Opción rápida: todo el proyecto
+
+Desde la raíz:
+
+```bash
+python start.py
 ```
 
-En otra terminal, la API:
+El script prepara el entorno, compila la SPA y levanta FastAPI sirviendo `apps/web/dist` y `/api` en el mismo origen.
 
-```powershell
+### Solo frontend
+
+Requisitos: **Node.js 20+**.
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+La SPA queda en `http://127.0.0.1:5173` y Vite reenvía `/api` a `http://localhost:8000`.
+
+En otra terminal, arranca la API:
+
+```bash
 cd services/api
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
-# o, desde la raíz:  powershell -File scripts\api.ps1
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Reset de datos de demo (también hay botón en el login y en la cabecera):
+Si ya tienes el entorno de Python del proyecto, puedes arrancar la API desde la raíz con `python start.py`; para desarrollar la SPA con recarga en caliente, usa `npm run dev` en otra terminal.
 
-```powershell
-curl -X POST http://localhost:8000/api/demo/reset
-```
+### Build de producción
 
-### Compilar para la demo "un proceso"
-
-```powershell
+```bash
 cd apps/web
-npm run build     # tsc --noEmit + vite build → apps/web/dist
-# o, desde la raíz:  powershell -File scripts\build.ps1
+npm run build
 ```
 
-FastAPI sirve `apps/web/dist` y la API bajo `/api` en `http://localhost:8000` (sin CORS, cookie de sesión en el mismo origen).
+El build ejecuta primero `tsc --noEmit` y genera `dist/`. FastAPI sirve ese directorio cuando existe.
 
 | Script | Qué hace |
 |---|---|
-| `npm run dev` (o `pnpm dev`) | Servidor de desarrollo (puerto 5173, proxy `/api` → `localhost:8000`) |
-| `npm run build` (o `pnpm build`) | Typecheck estricto + build de producción en `dist/` |
+| `npm run dev` | Servidor de desarrollo con proxy `/api` |
+| `npm run build` | Typecheck + build de producción |
 | `npm run preview` | Sirve `dist/` en el puerto 5173 |
-| `npm run typecheck` | Solo `tsc --noEmit` |
+| `npm run typecheck` | Solo comprobación de TypeScript |
 
 ## Variable de entorno
 
-`.env.example` → copia a `.env` si hace falta cambiar la base de la API:
+`.env.example`:
 
-```
+```text
 VITE_API_URL=/api
 ```
 
-Con el proxy de Vite y con la demo "un proceso" no hace falta tocar nada.
+Con el proxy de Vite y el modo “un proceso” no hace falta cambiarla.
 
-## Pantallas (rutas)
+## Pantallas y rutas
 
 | Ruta | Pantalla | Rol |
 |---|---|---|
-| `/login` | Selección de rol demo: **Soy clínica (Laura)** / **Soy especialista (Marc)** | público |
-| `/patients` | Lista de pacientes + zona de subida drag&drop (Word/Excel/JSON) | CLINIC |
-| `/patients/:id` | Ficha canónica: cabecera, alertas por severidad, timeline de encuentros, provenance | CLINIC |
-| `/specialists` | Marketplace: búsqueda por especialidad/zona | ambos |
-| `/specialists/:id` | Perfil, franjas disponibles y CTA "Solicitar derivación" | ambos |
-| `/requests` | Lista de solicitudes | ambos |
-| `/requests/new` | Nueva solicitud (motivo, urgencia, `CLINICAL`/`FULL`, franjas) | CLINIC |
-| `/requests/:id` | Detalle: estado, resumen no identificativo, aceptar/rechazar/cancelar, briefing y auditoría | ambos |
-| `/calendar` | Citas confirmadas | ambos |
+| `/login` | Selección de rol demo: Laura (clínica) / Marc (especialista) | público |
+| `/patients` | Pacientes, importación multiformato y revisión | CLINIC |
+| `/patients/:id` | Ficha canónica, alertas, procedencia, revisión y nota de cierre | CLINIC |
+| `/specialists` | Directorio de especialistas | CLINIC |
+| `/specialists/:id` | Perfil, disponibilidad y solicitud de derivación | CLINIC |
+| `/requests` | Solicitudes visibles según rol | ambos |
+| `/requests/new` | Nueva derivación | CLINIC |
+| `/requests/:id` | Detalle, resumen, briefing, aceptación, cierre y auditoría | ambos |
+| `/calendar` | Citas de la clínica o disponibilidad del especialista | ambos |
+| `/` | Redirección según rol | autenticado |
+| `*` | Página no encontrada | público |
 
-Los tabs de `/requests/:id` se reflejan en la URL (`?tab=briefing`, `?tab=audit`).
+Las rutas de clínica están protegidas con `ClinicOnly`. El especialista no ve el marketplace en la navegación actual: su flujo es **Solicitudes + Calendario**.
+
+### Importación
+
+La zona de importación acepta:
+
+- `.docx`
+- `.xlsx`
+- `.json`
+- `.csv`
+
+Muestra el resultado por archivo, el estado `READY` / `NEEDS_REVIEW`, el botón de revisión de mapeo y el aviso de campos pendientes. El editor de mapeo protege las columnas de identidad: no se pueden ignorar ni reasignar.
+
+### Derivaciones y agenda
+
+- La clínica crea la solicitud, elige urgencia y nivel de compartición, y hace seguimiento.
+- El especialista acepta una franja, desbloquea el briefing, puede cerrar la visita y dejar una nota en la ficha.
+- El calendario muestra citas para la clínica y permite al especialista editar sus franjas.
+- El resumen previo a la aceptación no incluye datos identificativos del tutor.
+
+## Diseño y responsive
+
+- Tema visual cálido: crema, arcilla y tinta, con superficies glass.
+- **Instrument Sans** como tipografía principal.
+- Navegación adaptada por rol: la clínica ve Pacientes, Especialistas, Calendario y Solicitudes; el especialista ve Solicitudes y Calendario.
+- Revisado a 1440, 390 y 320 px, sin overflow horizontal en las rutas principales.
+- Estados de carga, vacío y error en las pantallas de datos.
 
 ## Estructura
 
-```
+```text
 apps/web
 ├── index.html
-├── vite.config.ts            # proxy /api → http://localhost:8000, puerto 5173
-├── tailwind.config.js        # tema DaisyUI `vetlink` (navy #1D2B4F, teal #1E8E82)
+├── vite.config.ts             # proxy /api → localhost:8000
+├── tailwind.config.js         # tema, tipografía y tokens visuales
 ├── postcss.config.js
 ├── tsconfig.json
 ├── tsconfig.node.json
 └── src
-    ├── main.tsx              # QueryClientProvider + App
-    ├── App.tsx               # rutas + redirección por rol
-    ├── index.css             # Tailwind + clases base (vl-card, vl-label…)
+    ├── main.tsx               # QueryClientProvider + App
+    ├── App.tsx                # rutas y protección por rol
+    ├── index.css              # Tailwind, @font-face y clases base
     ├── api
-    │   ├── client.ts         # fetch con credentials:'include' y ApiError normalizada
-    │   ├── types.ts          # contrato de API tipado
-    │   └── hooks.ts          # hooks React Query
+    │   ├── client.ts          # fetch con cookies y errores normalizados
+    │   ├── types.ts           # contrato de API tipado
+    │   └── hooks.ts           # hooks React Query
     ├── components
-    │   ├── Layout.tsx        # shell autenticado (redirige a /login sin sesión)
-    │   ├── Nav.tsx           # cabecera: logo VL, chip de rol, enlaces, logout, reset demo
-    │   ├── AlertCard.tsx     # alerta clínica con color por severidad + evidencia
-    │   ├── ProvenanceBadge.tsx
-    │   ├── EmptyState.tsx    # estados vacío y error (con reintento)
-    │   └── Loading.tsx       # spinner y skeletons
+    │   ├── Layout.tsx
+    │   ├── Nav.tsx
+    │   ├── AlertCard.tsx
+    │   ├── AvailabilityEditor.tsx
+    │   ├── login/             # marca, intro, roles y mascota CSS
+    │   ├── patients/          # importación, mapeo, tarjetas y revisión
+    │   ├── request/           # detalle, briefing, auditoría y cierre
+    │   └── request-new/       # formulario y resumen de derivación
     ├── lib
-    │   ├── format.ts         # fechas es-ES, edad, severidades, roles, slots
-    │   └── routes.ts         # pantalla de aterrizaje por rol
+    │   ├── format.ts          # fechas, edad, severidades y roles
+    │   └── routes.ts          # aterrizaje por rol
     └── pages
-        ├── Login.tsx  Patients.tsx  PatientRecord.tsx
-        ├── Specialists.tsx  SpecialistDetail.tsx
-        ├── Requests.tsx  RequestNew.tsx  RequestDetail.tsx
+        ├── Login.tsx
+        ├── Patients.tsx
+        ├── PatientRecord.tsx
+        ├── Specialists.tsx
+        ├── SpecialistDetail.tsx
+        ├── Requests.tsx
+        ├── RequestNew.tsx
+        ├── RequestDetail.tsx
         └── Calendar.tsx
 ```
 
-## Notas de contrato (verificado contra `services/api`)
+## Contrato con la API
 
-- Sesión por cookie: `POST /api/auth/demo {user:"laura"|"marc"}`, `GET /api/me` → `{user}` (`user.role` = `CLINIC`/`SPECIALIST`, más `clinic_id` y `specialty`), `POST /api/auth/logout`.
-- `POST /api/requests` envía `{patient_id, specialist_id, motivo, urgencia, share_level, preferred}` con:
-  - `urgencia ∈ BAJA | MEDIA | ALTA` (por defecto `MEDIA`);
-  - `share_level ∈ CLINICAL | FULL` (por defecto `CLINICAL`);
-  - `preferred` como **texto libre** (`"Mañanas de lunes a jueves"`), no como array.
-- `POST /api/requests/{id}/accept` envía `{slot_iso}` en ISO 8601 (`toISOString()`); con slot → estado `SCHEDULED` + cita; sin slot → `ACCEPTED`.
-- Estados: `REQUESTED → ACCEPTED | SCHEDULED → COMPLETED`, más `DECLINED`, `CANCELLED`, `EXPIRED`. La UI desbloquea briefing en `ACCEPTED`, `SCHEDULED` y `COMPLETED`.
-- `GET /api/specialists/{id}` devuelve `available_slots` como **array de strings ISO** (`2026-11-16T09:30:00`); el frontend acepta también objetos por si cambia.
-- `GET /api/requests/{id}/briefing` responde **403** hasta aceptar: la UI lo muestra como estado bloqueado (candado + explicación RGPD) y no reintenta. Cuando está desbloqueado devuelve `{briefing, record, record_meta, patient_summary, audit, unlocked_at}`.
-- `GET /api/requests/{id}/summary` devuelve el resumen no identificativo (`patient` público, `headline`, `alert_counts`, `alerts`, `priority_actions`, `data_gaps`, `privacy`).
-- `GET /api/requests/{id}` → `{request, patient_summary:{id,name,patient,headline,alert_counts}, specialist}`.
-- `GET /api/appointments` enriquece cada cita con `patient_name`, `specialist_name`, `specialty`, `motivo`, `urgencia`, `request_status`.
-- Errores: se muestra el `detail` de FastAPI (`string` o `[{loc, msg}]`) en un `alert` de DaisyUI. Sin backend (`fetch` falla) el mensaje explica cómo arrancar la API; ninguna pantalla queda en blanco.
-- `alerts[].evidence` es un array de objetos `{entity,id,source_system,source_ref}`; se muestra plegado en cada alerta.
+- Sesión por cookie: `POST /api/auth/demo` con `{"user":"laura"}` o `{"user":"marc"}`; `GET /api/me` devuelve el usuario y su rol.
+- Importación: `POST /api/imports` con multipart `files`; mapeo en `GET/POST /api/imports/{job_id}/mapping`.
+- Revisión humana: `PATCH /api/patients/{patient_id}/record/review`.
+- Especialistas: `GET /api/specialists`, `GET /api/specialists/{id}` y `PATCH /api/specialists/{id}/availability`.
+- Derivaciones: `POST /api/requests`, aceptar con `{slot_iso}`, rechazar, cancelar y cerrar.
+- Briefing: `GET /api/requests/{id}/briefing` responde `403` hasta que la solicitud está aceptada. La UI muestra el estado bloqueado sin reintentar.
+- Cierre: `POST /api/requests/{id}/close` solo lo puede hacer el especialista asignado; la nota aparece en la ficha de la clínica.
+- Resumen: `GET /api/requests/{id}/summary` no incluye tutor, microchip, documentos ni facturas.
+- Errores: se muestra el `detail` de FastAPI; si el backend no responde, la UI explica cómo arrancarlo.
 
-## Reglas
+El contrato completo está en [`contracts/openapi-v1.json`](../../contracts/openapi-v1.json) (**27 rutas / 30 operaciones**) y en `http://127.0.0.1:8000/docs`.
 
-- **Selector de rol demo** (Laura/Marc) en el login, sin contraseñas: el jurado ve los dos lados en 2 clics.
-- **Estados obligatorios:** vacío, carga, error y éxito en cada pantalla.
-- **Móvil primero en el briefing**: es el escenario real del especialista.
-- Textos de UI en español, identificadores de código en inglés.
-- No añadir librerías de UI pesadas: DaisyUI + lucide-react es todo el sistema de diseño.
+## Calidad
+
+- Build de producción y typecheck correctos.
+- **70 tests de API** pasando.
+- **34 comprobaciones E2E** del flujo clínica → especialista.
+- Sin overflow horizontal en las rutas principales a 1440, 390 y 320 px.
+- Importación de los cuatro formatos y corrección de mapeo verificadas en navegador.
+
+## Licencia y atribución
+
+El código original del frontend se distribuye bajo **MIT**. La fuente **Instrument Sans** conserva su licencia **SIL OFL 1.1** y su aviso está en `src/assets/fonts/OFL-InstrumentSans.txt`.
+
+Consulta [`LICENSE`](../../LICENSE), [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md), [`LICENSES/`](../../LICENSES/) y [`CONTRIBUTORS.md`](../../CONTRIBUTORS.md).
